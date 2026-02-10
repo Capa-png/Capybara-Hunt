@@ -220,14 +220,31 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  // Custom cursor implementation
+  // Custom cursor implementation (desktop only)
   function initCustomCursor() {
+    // Detect mobile
+    const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    
+    if (isMobile()) {
+      return; // Skip custom cursor on mobile
+    }
+
     const cursor = document.createElement('img');
     cursor.id = 'custom-cursor';
     cursor.src = 'samples/Cursor@3x.png';
     cursor.alt = '';
-    cursor.style.opacity = '0';
+    cursor.style.cssText = `
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      opacity: 1;
+      width: auto;
+      height: auto;
+    `;
     document.body.appendChild(cursor);
+    
+    // Hide default cursor
+    document.body.style.cursor = 'none';
 
     function setImage(src) {
       cursor.src = src;
@@ -236,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.addEventListener('mousemove', (e) => {
       cursor.style.left = e.clientX + 'px';
       cursor.style.top = e.clientY + 'px';
-      if (cursor.style.opacity !== '1') cursor.style.opacity = '1';
+      cursor.style.opacity = '1';
     }, { passive: true });
 
     document.addEventListener('mouseover', (e) => {
