@@ -418,4 +418,6 @@ document.addEventListener('DOMContentLoaded', () => {
   renderGrid();
   updateDisplay();
   renderLeaderboard();
+  updateDisplay();
+  renderLeaderboard();
 });
