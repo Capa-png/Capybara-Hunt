@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Printable Capybara Barcodes</title>
+  <style>
+    body{font-family:Arial,Helvetica,sans-serif;padding:16px;color:#111}
+    .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+    .card{border:1px solid #ccc;padding:10px;border-radius:6px}
+    .code{font-weight:700;margin-top:6px}
+    .top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+    @media print{.noprint{display:none} .grid{grid-template-columns:repeat(4,1fr);gap:6px} .card{page-break-inside:avoid}}
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+</head>
+<body>
+  <div class="top">
+    <h1>Capybara Barcodes (protected)</h1>
+    <div>
+      <button onclick="window.print()" class="noprint">Print</button>
+      <a href="capybara-hunt.html">Back to hunt</a>
+    </div>
+  </div>
+
+  <div id="auth-overlay" style="position:fixed;inset:0;background:#fff;display:flex;align-items:center;justify-content:center;z-index:30">
+    <div style="max-width:420px;width:100%;padding:20px;border:1px solid #ddd;border-radius:8px;text-align:center">
+      <h2>Enter password to view barcodes</h2>
+      <input id="pwd" type="password" placeholder="Password" style="width:100%;padding:8px;margin-top:8px" />
+      <div style="margin-top:10px"><button id="pwd-submit">Unlock</button></div>
+      <p style="color:#666;font-size:13px;margin-top:8px">Contact organizer if you need access.</p>
+    </div>
+  </div>
+
+  <div id="grid" class="grid" style="display:none"></div>
+
+  <script>
+    const PASSWORD = 'CapaHunt26';
+    const overlay = document.getElementById('auth-overlay');
+    const grid = document.getElementById('grid');
+
+    function codeForIndex(n){
+      const mod = Math.pow(36,4);
+      const val = (n * 1973 + 12345) % mod;
+      return 'CP-' + val.toString(36).toUpperCase().padStart(4,'0');
+    }
+
+    function renderAll(){
+      for(let i=1;i<=100;i++){
+        const code = codeForIndex(i);
+        const card=document.createElement('div'); card.className='card';
+        const svg=document.createElementNS('http://www.w3.org/2000/svg','svg'); svg.setAttribute('id','bc-'+i); svg.setAttribute('width','100%'); svg.setAttribute('height','10mm'); svg.style.height='10mm';
+        card.appendChild(svg);
+        const label=document.createElement('div'); label.className='code'; label.textContent=code; card.appendChild(label);
+        grid.appendChild(card);
+        // JsBarcode height in px — ~38px ~= 10mm at 96dpi
+        JsBarcode(svg, code, {format:'CODE128',displayValue:false,height:38,margin:0});
+      }
+    }
+
+    document.getElementById('pwd-submit').addEventListener('click', ()=>{
+      const v=document.getElementById('pwd').value;
+      if(v===PASSWORD){ overlay.style.display='none'; grid.style.display='grid'; renderAll(); }
+      else alert('Incorrect password');
+    });
+  </script>
+</body>
+</html>
