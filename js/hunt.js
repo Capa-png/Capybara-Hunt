@@ -1,8 +1,28 @@
 document.addEventListener('DOMContentLoaded', () => {
   const TOTAL = 50;
-  const REDEEMS_KEY = 'capy-redeems';
-  const LEADERBOARD_KEY = 'capy-leaderboard';
   const USERNAME_KEY = 'capy-username';
+
+  // Firebase config
+  const firebaseConfig = {
+    apiKey: "AIzaSyDfJrOSSCv1EG6rQ8w-xMgJrCNecGFTa0E",
+    authDomain: "capybara-hunt.firebaseapp.com",
+    databaseURL: "https://capybara-hunt-default-rtdb.firebaseio.com",
+    projectId: "capybara-hunt",
+    storageBucket: "capybara-hunt.firebasestorage.app",
+    messagingSenderId: "522590066624",
+    appId: "1:522590066624:web:da0cd9a85fa683719a9a25",
+    measurementId: "G-EBBW7LY8PK"
+  };
+
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // Data stores
+  let redeems = [];
+  let leaderboard = [];
+  let currentUsername = localStorage.getItem(USERNAME_KEY) || '';
+  let isLoadingFromFirebase = false;
 
   // Profanity filter
   const PROFANITIES = ['damn', 'hell', 'piss', 'crap', 'ass', 'bitch', 'bastard', 'shit', 'fuck', 'dick', 'cock', 'pussy', 'asshole', 'douchebag', 'douche', 'cunt', 'whore', 'slut'];
@@ -10,17 +30,6 @@ document.addEventListener('DOMContentLoaded', () => {
   function containsProfanity(text) {
     const lower = text.toLowerCase();
     return PROFANITIES.some(word => lower.includes(word));
-  }
-
-  // Load data from localStorage (works everywhere including GitHub Pages)
-  let redeems = JSON.parse(localStorage.getItem(REDEEMS_KEY) || '[]');
-  let leaderboard = JSON.parse(localStorage.getItem(LEADERBOARD_KEY) || '[]');
-  let currentUsername = localStorage.getItem(USERNAME_KEY) || '';
-
-  // Save data to localStorage
-  function saveData() {
-    localStorage.setItem(REDEEMS_KEY, JSON.stringify(redeems));
-    localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(leaderboard));
   }
 
   // Helper: get set of found capybara indices (by anyone)
@@ -127,7 +136,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Update leaderboard
+  // Update leaderboard and save to Firebase
   function updateLeaderboard(username, points) {
     const existing = leaderboard.find(e => e.name === username);
     if (existing) {
@@ -137,7 +146,9 @@ document.addEventListener('DOMContentLoaded', () => {
       leaderboard.push({ name: username, score: points, count: 1 });
     }
     leaderboard.sort((a, b) => b.score - a.score);
-    saveData();
+    
+    // Save to Firebase
+    db.ref('leaderboard').set(leaderboard);
     renderLeaderboard();
   }
 
@@ -155,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  // Add to found
+  // Add to found and save to Firebase
   function addFound(index, username) {
     // Check if this username has already redeemed this code
     const alreadyRedeemed = redeems.some(r => r.index === index && r.username === username);
@@ -166,7 +177,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add redemption
     redeems.push({ index, username });
-    saveData();
+    
+    // Save to Firebase
+    db.ref('redeems').set(redeems);
 
     // Calculate and award points
     const points = getPoints(index, username);
@@ -253,6 +266,36 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initCustomCursor();
 
+  // Load data from Firebase and set up real-time listeners
+  function loadFromFirebase() {
+    // Load redeems
+    db.ref('redeems').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        redeems = snapshot.val();
+      } else {
+        redeems = [];
+      }
+      if (!isLoadingFromFirebase) {
+        renderGrid();
+        updateDisplay();
+      }
+    });
+
+    // Load leaderboard
+    db.ref('leaderboard').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        leaderboard = snapshot.val();
+      } else {
+        leaderboard = [];
+      }
+      if (!isLoadingFromFirebase) {
+        renderLeaderboard();
+      }
+    });
+  }
+
+  loadFromFirebase();
+
   // Admin password system
   const ADMIN_PASSWORD = 'CapaHunt26';
   let adminUnlocked = false;
@@ -318,7 +361,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (confirm('Reset all found capybaras?')) {
       redeems.length = 0;
       leaderboard.length = 0;
-      saveData();
+      // Save to Firebase
+      db.ref('redeems').set(redeems);
+      db.ref('leaderboard').set(leaderboard);
       renderGrid();
       updateDisplay();
       renderLeaderboard();
@@ -414,10 +459,8 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open(url, '_blank');
   }
 
-  // Initial render
+  // Initial render (will be updated when Firebase data loads)
   renderGrid();
-  updateDisplay();
-  renderLeaderboard();
   updateDisplay();
   renderLeaderboard();
 });
