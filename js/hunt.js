@@ -168,6 +168,10 @@ document.addEventListener('DOMContentLoaded', () => {
     redeems.push({ index, username });
     saveData();
 
+    // Calculate and award points
+    const points = getPoints(index, username);
+    updateLeaderboard(username, points);
+
     renderGrid();
     updateDisplay();
   }
