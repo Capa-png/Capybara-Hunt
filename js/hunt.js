@@ -330,20 +330,21 @@ document.addEventListener('DOMContentLoaded', () => {
       return maxTimeB - maxTimeA;
     });
 
-    sortedIndices.forEach(index => {
-      html += `<div style="margin-bottom:20px;border:1px solid #ddd;padding:12px;border-radius:6px;">`;
-      html += `<div style="font-weight:bold;margin-bottom:8px" data-i18n="hintsCategory">${i18n.t('hintsCategory')} #${index}</div>`;
-      
-      hintsByCapy[index].forEach((hint, hintNum) => {
-        const removeBtn = hintEditMode ? `<button class="hint-remove-btn" data-hint-id="${hint.timestamp}" style="float:right;background:#d62828;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">✕</button>` : '';
-        html += `<div style="margin:8px 0;padding:8px;background:#f5f5f5;border-radius:4px;position:relative;">`;
-        html += `${removeBtn}<div style="font-size:12px;color:#666;margin-bottom:4px">Hint ${hintNum + 1} by ${hint.username}</div>`;
-        html += `<div>${hint.text}</div>`;
+      sortedIndices.forEach(index => {
+        html += `<div style="margin-bottom:20px;border:1px solid #ddd;padding:12px;border-radius:6px;">`;
+        html += `<div style="font-weight:bold;margin-bottom:8px" data-i18n="hintsCategory">${i18n.t('hintsCategory')} #${index}</div>`;
+        hintsByCapy[index].forEach((hint, hintNum) => {
+          const removeBtn = hintEditMode ? `<button class="hint-remove-btn" data-hint-id="${hint.timestamp}" style="float:right;background:#d62828;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">✕</button>` : '';
+          const isAdmin = hint.isAdmin;
+          const adminLabel = isAdmin ? `<span style="color:#d62828;font-weight:bold;margin-left:8px">(from admin)</span>` : '';
+          const userColor = isAdmin ? 'color:#d62828;font-weight:bold;' : 'color:#666;';
+          html += `<div style="margin:8px 0;padding:8px;background:#f5f5f5;border-radius:4px;position:relative;">`;
+          html += `${removeBtn}<div style="font-size:12px;${userColor}margin-bottom:4px">Hint ${hintNum + 1} by ${hint.username}${adminLabel}</div>`;
+          html += `<div>${hint.text}</div>`;
+          html += `</div>`;
+        });
         html += `</div>`;
       });
-
-      html += `</div>`;
-    });
 
     container.innerHTML = html || '<p style="color:#999;text-align:center;padding:20px">No hints yet. Be the first to leave one!</p>';
 
@@ -673,6 +674,54 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Admin buttons
+    // Admin Add Hint UI
+    const adminHintCapy = document.getElementById('admin-hint-capy');
+    const adminHintText = document.getElementById('admin-hint-text');
+    const adminHintSubmit = document.getElementById('admin-hint-submit');
+    const adminHintError = document.getElementById('admin-hint-error');
+
+    if (adminHintCapy) {
+      // Populate dropdown 1-50
+      adminHintCapy.innerHTML = Array.from({length: TOTAL}, (_, i) => `<option value="${i+1}">${i+1}</option>`).join('');
+    }
+
+    if (adminHintSubmit) {
+      adminHintSubmit.addEventListener('click', () => {
+        if (!isAdminSessionValid()) return;
+        const capyIndex = parseInt(adminHintCapy.value);
+        const text = adminHintText.value.trim();
+        adminHintError.style.display = 'none';
+        adminHintError.textContent = '';
+        if (!text) {
+          adminHintError.textContent = 'Please enter a hint';
+          adminHintError.style.display = 'block';
+          return;
+        }
+        // Optionally: profanity check for admin hints
+        if (containsProfanity(text)) {
+          adminHintError.textContent = i18n.t('inappropriateLanguage');
+          adminHintError.style.display = 'block';
+          return;
+        }
+        // Add admin hint
+        const hint = {
+          index: capyIndex,
+          username: 'admin',
+          text,
+          timestamp: Date.now(),
+          isAdmin: true
+        };
+        hints.push(hint);
+        hints.sort((a, b) => b.timestamp - a.timestamp);
+        db.ref('hints').set(hints);
+        renderHints();
+        adminHintText.value = '';
+        adminHintError.textContent = 'Hint added!';
+        adminHintError.style.color = '#4caf50';
+        adminHintError.style.display = 'block';
+        setTimeout(() => { adminHintError.style.display = 'none'; adminHintError.style.color = '#d62828'; }, 1200);
+      });
+    }
   const printBtn = document.getElementById('admin-print-btn');
   const removeHintsBtn = document.getElementById('admin-remove-hints-btn');
   const resetBtn = document.getElementById('admin-reset-btn');
