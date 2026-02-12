@@ -282,6 +282,13 @@ document.addEventListener('DOMContentLoaded', () => {
     textarea.addEventListener('keypress', (e) => {
       if (e.key === 'Enter' && e.ctrlKey) handleSubmit();
     });
+
+    // Allow closing by clicking outside
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        handleCancel();
+      }
+    });
   }
 
   // Add hint to database
@@ -590,7 +597,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (isAdminSessionValid()) {
     unlockBtn.textContent = '✓ ' + i18n.t('unlock');
     unlockBtn.style.background = '#4caf50';
-    unlockBtn.disabled = true;
   }
 
   unlockBtn.addEventListener('click', () => {
@@ -610,12 +616,19 @@ document.addEventListener('DOMContentLoaded', () => {
     passwordInput.value = '';
   });
 
+  // Also allow closing password modal by clicking outside of it
+  passwordModal.addEventListener('click', (e) => {
+    if (e.target === passwordModal) {
+      passwordModal.style.display = 'none';
+      passwordInput.value = '';
+    }
+  });
+
   modalSubmit.addEventListener('click', () => {
     if (passwordInput.value === ADMIN_PASSWORD) {
       generateAdminToken();
       unlockBtn.textContent = '✓ ' + i18n.t('unlock');
       unlockBtn.style.background = '#4caf50';
-      unlockBtn.disabled = true;
       passwordModal.style.display = 'none';
       passwordInput.value = '';
       
@@ -630,6 +643,15 @@ document.addEventListener('DOMContentLoaded', () => {
     adminModal.style.display = 'none';
     hintEditMode = false;
     renderHints();
+  });
+
+  // Also allow closing modal by clicking outside of it
+  adminModal.addEventListener('click', (e) => {
+    if (e.target === adminModal) {
+      adminModal.style.display = 'none';
+      hintEditMode = false;
+      renderHints();
+    }
   });
 
   // Admin buttons
