@@ -90,7 +90,9 @@ document.addEventListener('DOMContentLoaded', () => {
   
   function containsProfanity(text) {
     const lower = text.toLowerCase();
-    return PROFANITIES.some(word => lower.includes(word));
+    // Split text into words, check for exact matches
+    const words = lower.split(/[^a-zA-Z0-9]+/).filter(Boolean);
+    return PROFANITIES.some(word => words.includes(word));
   }
 
   // Helper: get set of found capybara indices (by anyone)
