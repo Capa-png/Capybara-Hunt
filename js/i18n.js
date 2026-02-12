@@ -1,6 +1,7 @@
 // Internationalization (i18n) system
 const i18nStrings = {
   en: {
+        hintsSection: 'Hints',
       hintsCategory: 'Capybara',
     // Header
     title: 'Capybara Hunt',
@@ -90,6 +91,7 @@ const i18nStrings = {
     leaveHintQuestion: 'Would you like to leave a hint for this capybara?',
   },
   fr: {
+        hintsSection: 'Indices',
       hintsCategory: 'Capybara',
     // Header
     title: 'Chasse aux Capybaras',

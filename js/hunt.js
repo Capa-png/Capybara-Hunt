@@ -368,10 +368,14 @@ document.addEventListener('DOMContentLoaded', () => {
       existing.count += 1;
     } else {
       leaderboard.push({ name: username, score: points, count: 1 });
-      visibleNames.add(username); // New names are visible by default
+      // If visibleNames is empty, show all names by default
+      if (visibleNames.size === 0) {
+        leaderboard.forEach(e => visibleNames.add(e.name));
+      } else {
+        visibleNames.add(username);
+      }
     }
     leaderboard.sort((a, b) => b.score - a.score);
-    
     // Save to Firebase so it syncs across devices
     db.ref('leaderboard').set(leaderboard);
     renderLeaderboard();
