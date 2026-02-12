@@ -371,6 +371,9 @@ document.addEventListener('DOMContentLoaded', () => {
       visibleNames.add(username); // New names are visible by default
     }
     leaderboard.sort((a, b) => b.score - a.score);
+    
+    // Save to Firebase so it syncs across devices
+    db.ref('leaderboard').set(leaderboard);
     renderLeaderboard();
   }
 
@@ -566,6 +569,17 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!isLoadingFromFirebase) {
         renderGrid();
         updateDisplay();
+      }
+    });
+
+    db.ref('leaderboard').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        leaderboard = snapshot.val();
+      } else {
+        leaderboard = [];
+      }
+      if (!isLoadingFromFirebase) {
+        renderLeaderboard();
       }
     });
 
