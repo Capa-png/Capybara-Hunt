@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
   const TOTAL = 50;
   const USER_KEY = 'capy-user';
+  const ADMIN_STATE_KEY = 'capy-admin-session';
 
   // Firebase config
   const firebaseConfig = {
@@ -21,8 +22,12 @@ document.addEventListener('DOMContentLoaded', () => {
   // Data stores
   let redeems = [];
   let leaderboard = [];
+  let hints = [];
+  let visibleNames = new Set(); // Track which names are visible
   let currentUser = getStoredUser() || null;
   let isLoadingFromFirebase = false;
+  let hintEditMode = false;
+  let adminSessionToken = null; // Unhackable token for admin session
 
   // Get current user from localStorage
   function getStoredUser() {
@@ -36,13 +41,50 @@ document.addEventListener('DOMContentLoaded', () => {
     currentUser = user;
   }
 
-  // Comprehensive profanity filter with additional blocked words
+  // Generate unhackable admin session token
+  function generateAdminToken() {
+    // Create token from current timestamp + random number + browser fingerprint
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).substr(2, 9);
+    const fingerprint = navigator.userAgent.length + navigator.language.length;
+    adminSessionToken = `${timestamp}-${random}-${fingerprint}`;
+    
+    // Save with expiration (15 minutes)
+    const sessionData = {
+      token: adminSessionToken,
+      expires: timestamp + (15 * 60 * 1000)
+    };
+    sessionStorage.setItem(ADMIN_STATE_KEY, JSON.stringify(sessionData));
+  }
+
+  // Validate admin session token
+  function isAdminSessionValid() {
+    const sessionData = sessionStorage.getItem(ADMIN_STATE_KEY);
+    if (!sessionData) return false;
+    
+    try {
+      const { token, expires } = JSON.parse(sessionData);
+      if (Date.now() > expires) {
+        sessionStorage.removeItem(ADMIN_STATE_KEY);
+        return false;
+      }
+      adminSessionToken = token;
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  // Invalidate admin session
+  function invalidateAdminSession() {
+    sessionStorage.removeItem(ADMIN_STATE_KEY);
+    adminSessionToken = null;
+  }
+
+  // Comprehensive profanity filter
   const PROFANITIES = [
-    // Original list
     'damn', 'hell', 'piss', 'crap', 'ass', 'bitch', 'bastard', 'shit', 'fuck', 'dick', 'cock', 'pussy', 'asshole', 'douchebag', 'douche', 'cunt', 'whore', 'slut',
-    // Additional blocked words
     'epstein', 'diddy',
-    // CMU bad words list (selected most relevant/severe ones)
     'nigger', 'nigga', 'faggot', 'fag', 'retard', 'coon', 'gook', 'spic', 'wetback', 'kike', 'jap', 'paki', 'towelhead', 'raghead', 'chink', 'zipperhead', 'beaner', 'spade', 'jigaboo', 'jungle bunny', 'cocksucker', 'motherfucker', 'asshat', 'bitch ass', 'biatch', 'bollocks', 'bugger', 'bullshit', 'arsehole', 'arse', 'twat', 'wanker', 'shite', 'pissed', 'tit', 'bollard'
   ];
   
@@ -73,10 +115,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Calculate points for a capybara
   function getPoints(index, username) {
     if (index === 50) return 10; // Golden capybara always 10 points
-    // Count how many unique people have redeemed this code (including current user)
     const uniqueRedeemers = new Set(redeems.filter(r => r.index === index).map(r => r.username));
-    uniqueRedeemers.add(username); // Add current user
-    // 1 point if first, 0.5 if someone else already got it
+    uniqueRedeemers.add(username);
     return uniqueRedeemers.size === 1 ? 1 : 0.5;
   }
 
@@ -90,6 +130,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // Render grid with special styling for #50
   function renderGrid() {
     const grid = document.getElementById('grid');
+    if (!grid) return; // Grid may not exist if section was removed
+    
     const found = getFoundIndices();
     grid.innerHTML = '';
     for (let i = 1; i <= TOTAL; i++) {
@@ -139,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
       errorMsg.style.display = 'none';
       errorMsg.textContent = '';
 
-      // Validate
       if (!firstName || !lastName) {
         errorMsg.textContent = i18n.t('nameRequired');
         errorMsg.style.display = 'block';
@@ -185,8 +226,131 @@ document.addEventListener('DOMContentLoaded', () => {
       if (e.key === 'Enter') handleSubmit();
     });
 
-    // Update i18n for the modal
     i18n.updateDOM();
+  }
+
+  // Show hint modal
+  function showHintModal(capybaraIndex, callback) {
+    const modal = document.getElementById('hint-modal');
+    const textarea = modal.querySelector('#hint-text');
+    const errorMsg = modal.querySelector('#hint-error');
+    const capyInfo = modal.querySelector('#hint-capybara-info');
+    
+    capyInfo.textContent = `Capybara #${capybaraIndex}`;
+    textarea.value = '';
+    errorMsg.style.display = 'none';
+    errorMsg.textContent = '';
+    
+    textarea.focus();
+    modal.style.display = 'flex';
+
+    const handleSubmit = () => {
+      const hintText = textarea.value.trim();
+      
+      if (!hintText) {
+        errorMsg.textContent = 'Please enter a hint';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      if (containsProfanity(hintText)) {
+        errorMsg.textContent = i18n.t('inappropriateLanguage');
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      modal.style.display = 'none';
+      callback(hintText);
+    };
+
+    const handleCancel = () => {
+      modal.style.display = 'none';
+      callback(null);
+    };
+
+    // Remove old listeners
+    const submitBtn = modal.querySelector('#hint-submit');
+    const cancelBtn = modal.querySelector('#hint-cancel');
+    const newSubmitBtn = submitBtn.cloneNode(true);
+    const newCancelBtn = cancelBtn.cloneNode(true);
+    submitBtn.parentNode.replaceChild(newSubmitBtn, submitBtn);
+    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+
+    newSubmitBtn.addEventListener('click', handleSubmit);
+    newCancelBtn.addEventListener('click', handleCancel);
+    
+    textarea.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) handleSubmit();
+    });
+  }
+
+  // Add hint to database
+  function addHint(capybaraIndex, username, hintText) {
+    const hint = {
+      index: capybaraIndex,
+      username: username,
+      text: hintText,
+      timestamp: Date.now()
+    };
+    
+    hints.push(hint);
+    hints.sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent
+    
+    // Save to Firebase
+    db.ref('hints').set(hints);
+    renderHints();
+  }
+
+  // Render hints section
+  function renderHints() {
+    const container = document.getElementById('hints-container');
+    if (!container) return;
+
+    // Group hints by capybara index
+    const hintsByCapy = {};
+    hints.forEach(hint => {
+      if (!hintsByCapy[hint.index]) {
+        hintsByCapy[hint.index] = [];
+      }
+      hintsByCapy[hint.index].push(hint);
+    });
+
+    let html = '';
+    const sortedIndices = Object.keys(hintsByCapy).sort((a, b) => {
+      // Sort by most recent hint
+      const maxTimeA = Math.max(...hintsByCapy[a].map(h => h.timestamp));
+      const maxTimeB = Math.max(...hintsByCapy[b].map(h => h.timestamp));
+      return maxTimeB - maxTimeA;
+    });
+
+    sortedIndices.forEach(index => {
+      html += `<div style="margin-bottom:20px;border:1px solid #ddd;padding:12px;border-radius:6px;">`;
+      html += `<div style="font-weight:bold;margin-bottom:8px">Capybara #${index}</div>`;
+      
+      hintsByCapy[index].forEach((hint, hintNum) => {
+        const removeBtn = hintEditMode ? `<button class="hint-remove-btn" data-hint-id="${hint.timestamp}" style="float:right;background:#d62828;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">✕</button>` : '';
+        html += `<div style="margin:8px 0;padding:8px;background:#f5f5f5;border-radius:4px;position:relative;">`;
+        html += `${removeBtn}<div style="font-size:12px;color:#666;margin-bottom:4px">Hint ${hintNum + 1} by ${hint.username}</div>`;
+        html += `<div>${hint.text}</div>`;
+        html += `</div>`;
+      });
+
+      html += `</div>`;
+    });
+
+    container.innerHTML = html || '<p style="color:#999;text-align:center;padding:20px">No hints yet. Be the first to leave one!</p>';
+
+    // Add event listeners for remove buttons
+    if (hintEditMode) {
+      document.querySelectorAll('.hint-remove-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const hintId = parseInt(btn.getAttribute('data-hint-id'));
+          hints = hints.filter(h => h.timestamp !== hintId);
+          db.ref('hints').set(hints);
+          renderHints();
+        });
+      });
+    }
   }
 
   // Update leaderboard (local only, not Firebase)
@@ -197,6 +361,7 @@ document.addEventListener('DOMContentLoaded', () => {
       existing.count += 1;
     } else {
       leaderboard.push({ name: username, score: points, count: 1 });
+      visibleNames.add(username); // New names are visible by default
     }
     leaderboard.sort((a, b) => b.score - a.score);
     renderLeaderboard();
@@ -207,7 +372,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const board = document.getElementById('leaderboard');
     if (!board) return;
     
-    board.innerHTML = leaderboard.slice(0, 10).map((entry, i) => `
+    const visibleEntries = leaderboard.filter(e => visibleNames.has(e.name) || visibleNames.size === 0);
+    board.innerHTML = visibleEntries.slice(0, 10).map((entry, i) => `
       <div class="leaderboard-entry">
         <div style="font-weight:bold;color:#d62828;min-width:30px">#${i + 1}</div>
         <div class="leaderboard-name">${entry.name}</div>
@@ -216,52 +382,55 @@ document.addEventListener('DOMContentLoaded', () => {
     `).join('');
   }
 
-  // Render admin leaderboard (with remove buttons)
-  function renderAdminLeaderboard() {
-    const board = document.getElementById('admin-leaderboard');
-    if (!board) return;
-    
-    board.innerHTML = leaderboard.map((entry, i) => `
-      <div class="leaderboard-entry">
-        <div style="font-weight:bold;color:#d62828;min-width:30px">#${i + 1}</div>
-        <div class="leaderboard-name">${entry.name}</div>
-        <div class="leaderboard-score">${entry.score.toFixed(1)}</div>
-        <button class="leaderboard-remove" data-name="${entry.name}" title="Remove">✕</button>
+  // Render admin checklist
+  function renderAdminChecklist() {
+    const checklist = document.getElementById('admin-names-checklist');
+    if (!checklist) return;
+
+    checklist.innerHTML = leaderboard.map(entry => `
+      <div style="display:flex;align-items:center;padding:6px;border-bottom:1px solid #eee;">
+        <input type="checkbox" class="name-visibility-checkbox" data-name="${entry.name}" ${visibleNames.has(entry.name) || visibleNames.size === 0 ? 'checked' : ''} style="margin-right:8px;cursor:pointer;">
+        <span>${entry.name}</span>
       </div>
     `).join('');
 
-    // Add event listeners for remove buttons
-    board.querySelectorAll('.leaderboard-remove').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        const nameToRemove = btn.getAttribute('data-name');
-        leaderboard = leaderboard.filter(e => e.name !== nameToRemove);
+    // Add event listeners
+    checklist.querySelectorAll('.name-visibility-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const name = checkbox.getAttribute('data-name');
+        if (checkbox.checked) {
+          visibleNames.add(name);
+        } else {
+          visibleNames.delete(name);
+        }
         renderLeaderboard();
-        renderAdminLeaderboard();
       });
     });
   }
 
   // Add to found and save to Firebase
   function addFound(index, username) {
-    // Check if this username has already redeemed this code
     const alreadyRedeemed = redeems.some(r => r.index === index && r.username === username);
     if (alreadyRedeemed) {
       alert(`${username}, ${i18n.t('alreadyFound')}${index}!`);
       return;
     }
 
-    // Add redemption
     redeems.push({ index, username });
-    
-    // Save to Firebase
     db.ref('redeems').set(redeems);
 
-    // Calculate and award points
     const points = getPoints(index, username);
     updateLeaderboard(username, points);
 
     renderGrid();
     updateDisplay();
+
+    // Ask if user wants to leave a hint
+    showHintModal(index, (hintText) => {
+      if (hintText) {
+        addHint(index, username, hintText);
+      }
+    });
   }
 
   // Manual code entry
@@ -279,7 +448,6 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     
-    // Check if user is registered
     if (!currentUser) {
       showUserModal((user) => {
         if (user) {
@@ -306,7 +474,6 @@ document.addEventListener('DOMContentLoaded', () => {
       const lang = btn.getAttribute('data-lang');
       i18n.setLanguage(lang);
       
-      // Update button styles
       document.querySelectorAll('.lang-btn').forEach(b => {
         b.classList.remove('lang-btn-active');
       });
@@ -314,19 +481,18 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   });
 
-  // Listen for i18n changes to update specific elements
+  // Listen for i18n changes
   document.addEventListener('i18n-changed', () => {
     renderLeaderboard();
-    renderAdminLeaderboard();
+    renderAdminChecklist();
   });
 
-  // Custom cursor implementation (desktop only)
+  // Custom cursor implementation
   function initCustomCursor() {
-    // Detect mobile
     const isMobile = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
     
     if (isMobile()) {
-      return; // Skip custom cursor on mobile
+      return;
     }
 
     const cursor = document.createElement('img');
@@ -343,7 +509,6 @@ document.addEventListener('DOMContentLoaded', () => {
     `;
     document.body.appendChild(cursor);
     
-    // Hide default cursor
     document.body.style.cursor = 'none';
 
     function setImage(src) {
@@ -383,9 +548,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initCustomCursor();
 
-  // Load data from Firebase and set up real-time listeners
+  // Load data from Firebase
   function loadFromFirebase() {
-    // Load redeems
     db.ref('redeems').on('value', (snapshot) => {
       if (snapshot.exists()) {
         redeems = snapshot.val();
@@ -398,13 +562,14 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Load leaderboard - for display only, we manage locally
-    db.ref('leaderboard').on('value', (snapshot) => {
+    db.ref('hints').on('value', (snapshot) => {
       if (snapshot.exists()) {
-        // We don't load from Firebase, only display local
+        hints = snapshot.val();
+      } else {
+        hints = [];
       }
       if (!isLoadingFromFirebase) {
-        renderLeaderboard();
+        renderHints();
       }
     });
   }
@@ -413,8 +578,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Admin password system
   const ADMIN_PASSWORD = 'CapaHunt26';
-  let adminUnlocked = false;
-
   const unlockBtn = document.getElementById('admin-unlock-btn');
   const adminModal = document.getElementById('admin-modal');
   const adminModalClose = document.getElementById('admin-modal-close');
@@ -423,53 +586,100 @@ document.addEventListener('DOMContentLoaded', () => {
   const modalSubmit = document.getElementById('modal-submit');
   const modalCancel = document.getElementById('modal-cancel');
 
-  // Show password modal
+  // Check if admin session is already valid
+  if (isAdminSessionValid()) {
+    unlockBtn.textContent = '✓ ' + i18n.t('unlock');
+    unlockBtn.style.background = '#4caf50';
+    unlockBtn.disabled = true;
+  }
+
   unlockBtn.addEventListener('click', () => {
-    passwordModal.style.display = 'flex';
-    passwordInput.focus();
+    if (isAdminSessionValid()) {
+      // Already unlocked, show admin modal
+      renderAdminChecklist();
+      adminModal.style.display = 'flex';
+    } else {
+      // Show password modal
+      passwordModal.style.display = 'flex';
+      passwordInput.focus();
+    }
   });
 
-  // Close password modal
   modalCancel.addEventListener('click', () => {
     passwordModal.style.display = 'none';
     passwordInput.value = '';
   });
 
-  // Submit admin password
   modalSubmit.addEventListener('click', () => {
     if (passwordInput.value === ADMIN_PASSWORD) {
-      adminUnlocked = true;
+      generateAdminToken();
       unlockBtn.textContent = '✓ ' + i18n.t('unlock');
       unlockBtn.style.background = '#4caf50';
       unlockBtn.disabled = true;
       passwordModal.style.display = 'none';
       passwordInput.value = '';
       
-      // Show admin modal
-      renderAdminLeaderboard();
+      renderAdminChecklist();
       adminModal.style.display = 'flex';
     } else {
       alert(i18n.t('wrongPassword'));
     }
   });
 
-  // Close admin modal
   adminModalClose.addEventListener('click', () => {
     adminModal.style.display = 'none';
-    adminUnlocked = false;
-    unlockBtn.textContent = i18n.t('unlock');
-    unlockBtn.style.background = '#666';
-    unlockBtn.disabled = false;
+    hintEditMode = false;
+    renderHints();
   });
 
-  // Allow Enter key in password input
+  // Admin buttons
+  const printBtn = document.getElementById('admin-print-btn');
+  const removeHintsBtn = document.getElementById('admin-remove-hints-btn');
+  const resetBtn = document.getElementById('admin-reset-btn');
+
+  printBtn.addEventListener('click', () => {
+    if (!isAdminSessionValid()) return;
+    const barcodes = [];
+    for (let i = 1; i <= TOTAL; i++) {
+      barcodes.push({ index: i, code: codeForIndex(i) });
+    }
+    downloadBarcodesPDF(barcodes);
+  });
+
+  removeHintsBtn.addEventListener('click', () => {
+    if (!isAdminSessionValid()) return;
+    hintEditMode = !hintEditMode;
+    removeHintsBtn.textContent = hintEditMode ? 'Stop Removing Hints' : 'Remove Hints (Edit Mode)';
+    removeHintsBtn.style.background = hintEditMode ? '#f44336' : '#ff9800';
+    renderHints();
+  });
+
+  resetBtn.addEventListener('click', () => {
+    if (!isAdminSessionValid()) return;
+    if (confirm(i18n.t('resetConfirm'))) {
+      redeems = [];
+      leaderboard = [];
+      hints = [];
+      visibleNames.clear();
+      db.ref('redeems').set(redeems);
+      db.ref('leaderboard').set(leaderboard);
+      db.ref('hints').set(hints);
+      renderGrid();
+      updateDisplay();
+      renderLeaderboard();
+      renderHints();
+      renderAdminChecklist();
+      alert(i18n.t('resetComplete'));
+    }
+  });
+
   passwordInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       modalSubmit.click();
     }
   });
 
-  // PDF generation for barcodes with visual barcode images
+  // PDF generation for barcodes
   function downloadBarcodesPDF(barcodes) {
     const html = `<!DOCTYPE html>
 <html>
@@ -556,10 +766,11 @@ document.addEventListener('DOMContentLoaded', () => {
     window.open(url, '_blank');
   }
 
-  // Initial render (will be updated when Firebase data loads)
+  // Initial render
   renderGrid();
   updateDisplay();
   renderLeaderboard();
+  renderHints();
 
   // Update i18n on page load
   i18n.updateDOM();

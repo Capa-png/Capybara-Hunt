@@ -84,13 +84,31 @@
 
       <!-- Admin Modal (for leaderboard management) -->
       <div id="admin-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:1000;display:none">
-        <div style="background:#fff;padding:32px;border-radius:12px;max-width:400px;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
-          <h2 style="margin:0 0 8px 0;font-size:20px" data-i18n="manageLeaderboard">Manage Leaderboard</h2>
-          <p style="margin:0 0 16px 0;font-size:12px;color:#666" data-i18n="removeMessage">Click the X to remove a player</p>
-          <div id="admin-leaderboard" style="margin-bottom:16px"></div>
-          <div style="display:flex;gap:8px">
-            <button id="admin-modal-close" class="btn-primary" style="flex:1;padding:10px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold" data-i18n="submit">Close</button>
+        <div style="background:#fff;padding:32px;border-radius:12px;max-width:450px;max-height:80vh;overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
+          <h2 style="margin:0 0 20px 0;font-size:20px">Admin Panel</h2>
+          
+          <!-- Print Button -->
+          <div style="margin-bottom:20px;">
+            <button id="admin-print-btn" class="btn-primary" style="width:100%;padding:12px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Print Codes</button>
           </div>
+
+          <!-- Remove Names Checklist -->
+          <div style="margin-bottom:20px;border-top:1px solid #ddd;padding-top:16px;">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:bold">Manage Entries (uncheck to hide)</h3>
+            <div id="admin-names-checklist" style="max-height:200px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;"></div>
+          </div>
+
+          <!-- Remove Hints Button -->
+          <div style="margin-bottom:20px;">
+            <button id="admin-remove-hints-btn" class="btn-primary" style="width:100%;padding:12px;border:none;background:#ff9800;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Remove Hints (Edit Mode)</button>
+          </div>
+
+          <!-- Reset All Button -->
+          <div style="margin-bottom:0;">
+            <button id="admin-reset-btn" class="btn-primary" style="width:100%;padding:12px;border:none;background:#f44336;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Reset All</button>
+          </div>
+
+          <button id="admin-modal-close" class="btn-primary" style="width:100%;padding:10px;border:none;background:#999;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold;margin-top:16px" data-i18n="submit">Close</button>
         </div>
       </div>
 
@@ -106,6 +124,20 @@
         </div>
       </div>
 
+      <!-- Hint Modal -->
+      <div id="hint-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:2000;display:none">
+        <div style="background:#fff;padding:32px;border-radius:12px;max-width:350px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
+          <h2 style="margin:0 0 16px 0;font-size:20px">Leave a Hint</h2>
+          <p style="margin:0 0 12px 0;font-size:12px;color:#666"><span id="hint-capybara-info"></span> - Help others find this capybara!</p>
+          <textarea id="hint-text" placeholder="Enter your hint here..." style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;margin-bottom:12px;box-sizing:border-box;min-height:100px;font-family:inherit;resize:vertical;"></textarea>
+          <div id="hint-error" style="color:#d62828;font-size:12px;margin-bottom:12px;display:none"></div>
+          <div style="display:flex;gap:8px">
+            <button id="hint-submit" class="btn-primary" style="flex:1;padding:10px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Submit Hint</button>
+            <button id="hint-cancel" style="flex:1;padding:10px;border:none;background:#999;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Skip</button>
+          </div>
+        </div>
+      </div>
+
       <!-- Scan Section (Home) -->
       <section class="section">
         <h2 data-i18n="enterCode">Enter Code</h2>
@@ -115,22 +147,16 @@
         </div>
       </section>
 
-      <!-- Recent -->
-      <section class="section">
-        <h2 data-i18n="recent">Recent</h2>
-        <ul id="feed" class="feed"></ul>
-      </section>
-
-      <!-- Grid -->
-      <section class="section">
-        <h2 data-i18n="capasToFind">Capas to Find</h2>
-        <div id="grid" class="grid"></div>
-      </section>
-
       <!-- Leaderboard -->
       <section class="section">
         <h2 data-i18n="leaderboard">Leaderboard</h2>
         <div id="leaderboard" class="leaderboard"></div>
+      </section>
+
+      <!-- Hints Section -->
+      <section class="section">
+        <h2>Hints</h2>
+        <div id="hints-container" style="max-height:400px;overflow-y:auto;"></div>
       </section>
     </main>
   </div>

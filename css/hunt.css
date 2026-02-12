@@ -821,6 +821,72 @@ input[type="password"]:focus {
   display: none;
 }
 
+/* Hint section */
+#hints-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.hint-item {
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 6px;
+  background: #f9f9f9;
+}
+
+.hint-capybara-title {
+  font-weight: bold;
+  color: #d62828;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+
+.hint-text {
+  padding: 8px;
+  background: #fff;
+  border-left: 3px solid #d62828;
+  margin: 6px 0;
+  border-radius: 3px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.hint-meta {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
+}
+
+/* Admin checklist */
+#admin-names-checklist {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 250px;
+  overflow-y: auto;
+}
+
+#admin-names-checklist label {
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  user-select: none;
+}
+
+#admin-names-checklist label:last-child {
+  border-bottom: none;
+}
+
+#admin-names-checklist input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
 @media(max-width:768px){
   header h1{font-size:36px}
   .layout{max-width:100%}

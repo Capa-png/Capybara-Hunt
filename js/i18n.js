@@ -68,9 +68,25 @@ const i18nStrings = {
     resetComplete: 'Reset complete',
     inappropriateLanguage: 'Please use appropriate language',
     
+    // Messages
+    invalidCodeFormat: 'Invalid code format',
+    codeNotFound: 'Code not found',
+    alreadyFound: 'you already found Capybara #',
+    wrongPassword: 'Wrong password',
+    resetConfirm: 'Reset all found capybaras?',
+    resetComplete: 'Reset complete',
+    inappropriateLanguage: 'Please use appropriate language',
+    
     // Admin modal
     manageLeaderboard: 'Manage Leaderboard',
     removeMessage: 'Click the X to remove a player',
+    
+    // Hint system
+    leaveHint: 'Leave a Hint',
+    hintHelp: 'Help others find this capybara!',
+    hintPlaceholder: 'Enter your hint here...',
+    submitHint: 'Submit Hint',
+    leaveHintQuestion: 'Would you like to leave a hint for this capybara?',
   },
   fr: {
     // Header
@@ -143,6 +159,13 @@ const i18nStrings = {
     // Admin modal
     manageLeaderboard: 'Gérer le Classement',
     removeMessage: 'Cliquez sur le X pour supprimer un joueur',
+    
+    // Hint system
+    leaveHint: 'Laisser un indice',
+    hintHelp: 'Aidez les autres à trouver ce capybara!',
+    hintPlaceholder: 'Entrez votre indice ici...',
+    submitHint: 'Soumettre l\'indice',
+    leaveHintQuestion: 'Voulez-vous laisser un indice pour ce capybara?',
   }
 };
 
