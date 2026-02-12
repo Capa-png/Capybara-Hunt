@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
   const TOTAL = 50;
-  const USERNAME_KEY = 'capy-username';
+  const USER_KEY = 'capy-user';
 
   // Firebase config
   const firebaseConfig = {
@@ -21,11 +21,30 @@ document.addEventListener('DOMContentLoaded', () => {
   // Data stores
   let redeems = [];
   let leaderboard = [];
-  let currentUsername = localStorage.getItem(USERNAME_KEY) || '';
+  let currentUser = getStoredUser() || null;
   let isLoadingFromFirebase = false;
 
-  // Profanity filter
-  const PROFANITIES = ['damn', 'hell', 'piss', 'crap', 'ass', 'bitch', 'bastard', 'shit', 'fuck', 'dick', 'cock', 'pussy', 'asshole', 'douchebag', 'douche', 'cunt', 'whore', 'slut'];
+  // Get current user from localStorage
+  function getStoredUser() {
+    const stored = localStorage.getItem(USER_KEY);
+    return stored ? JSON.parse(stored) : null;
+  }
+
+  // Save current user to localStorage
+  function saveUser(user) {
+    localStorage.setItem(USER_KEY, JSON.stringify(user));
+    currentUser = user;
+  }
+
+  // Comprehensive profanity filter with additional blocked words
+  const PROFANITIES = [
+    // Original list
+    'damn', 'hell', 'piss', 'crap', 'ass', 'bitch', 'bastard', 'shit', 'fuck', 'dick', 'cock', 'pussy', 'asshole', 'douchebag', 'douche', 'cunt', 'whore', 'slut',
+    // Additional blocked words
+    'epstein', 'diddy',
+    // CMU bad words list (selected most relevant/severe ones)
+    'nigger', 'nigga', 'faggot', 'fag', 'retard', 'coon', 'gook', 'spic', 'wetback', 'kike', 'jap', 'paki', 'towelhead', 'raghead', 'chink', 'zipperhead', 'beaner', 'spade', 'jigaboo', 'jungle bunny', 'cocksucker', 'motherfucker', 'asshat', 'bitch ass', 'biatch', 'bollocks', 'bugger', 'bullshit', 'arsehole', 'arse', 'twat', 'wanker', 'shite', 'pissed', 'tit', 'bollard'
+  ];
   
   function containsProfanity(text) {
     const lower = text.toLowerCase();
@@ -86,57 +105,91 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }
 
-  // Show name prompt modal
-  function showNameModal(callback) {
+  // Show user registration modal
+  function showUserModal(callback) {
     const modal = document.createElement('div');
     modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:2000';
     modal.innerHTML = `
-      <div style="background:#fff;padding:32px;border-radius:12px;max-width:300px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
-        <h2 style="margin:0 0 16px 0;font-size:20px">Enter Your Name</h2>
-        <input id="name-input" type="text" placeholder="Your name" value="${currentUsername}" autocomplete="off" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;margin-bottom:16px;box-sizing:border-box" />
-        <div id="error-msg" style="color:#d62828;font-size:12px;margin-bottom:8px;display:none">Please use appropriate language</div>
+      <div style="background:#fff;padding:32px;border-radius:12px;max-width:350px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-height:90vh;overflow-y:auto">
+        <h2 style="margin:0 0 8px 0;font-size:20px" data-i18n="enterName">Enter Your Information</h2>
+        <p style="margin:0 0 16px 0;font-size:12px;color:#666">Please use your real first and last name</p>
+        <input id="first-name" type="text" data-i18n-placeholder="firstName" placeholder="First Name" autocomplete="off" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;margin-bottom:12px;box-sizing:border-box" />
+        <input id="last-name" type="text" data-i18n-placeholder="lastName" placeholder="Last Name" autocomplete="off" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;margin-bottom:12px;box-sizing:border-box" />
+        <input id="email-input" type="email" data-i18n-placeholder="schoolEmail" placeholder="your.name@lrsd.net" autocomplete="off" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;margin-bottom:12px;box-sizing:border-box" />
+        <div id="error-msg" style="color:#d62828;font-size:12px;margin-bottom:12px;display:none"></div>
         <div style="display:flex;gap:8px">
-          <button id="name-submit" class="btn-primary" style="flex:1;padding:10px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Submit</button>
-          <button id="name-cancel" style="flex:1;padding:10px;border:none;background:#999;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold">Skip</button>
+          <button id="user-submit" class="btn-primary" style="flex:1;padding:10px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold" data-i18n="submit">Submit</button>
+          <button id="user-cancel" style="flex:1;padding:10px;border:none;background:#999;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold" data-i18n="skip">Skip</button>
         </div>
       </div>
     `;
     document.body.appendChild(modal);
 
-    const input = modal.querySelector('#name-input');
+    const firstNameInput = modal.querySelector('#first-name');
+    const lastNameInput = modal.querySelector('#last-name');
+    const emailInput = modal.querySelector('#email-input');
     const errorMsg = modal.querySelector('#error-msg');
-    input.focus();
-    input.select();
+    firstNameInput.focus();
 
     const handleSubmit = () => {
-      const name = input.value.trim();
-      if (!name) {
-        callback(currentUsername || 'Anonymous');
-        modal.remove();
-        return;
-      }
-      if (containsProfanity(name)) {
+      const firstName = firstNameInput.value.trim();
+      const lastName = lastNameInput.value.trim();
+      const email = emailInput.value.trim();
+
+      errorMsg.style.display = 'none';
+      errorMsg.textContent = '';
+
+      // Validate
+      if (!firstName || !lastName) {
+        errorMsg.textContent = i18n.t('nameRequired');
         errorMsg.style.display = 'block';
-        input.focus();
-        input.select();
         return;
       }
+
+      if (!email.endsWith('@lrsd.net')) {
+        errorMsg.textContent = i18n.t('invalidEmail');
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const fullName = `${firstName} ${lastName}`;
+      if (containsProfanity(fullName)) {
+        errorMsg.textContent = i18n.t('inappropriateLanguage');
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      const user = { name: fullName, email, firstName, lastName };
+      saveUser(user);
       modal.remove();
-      callback(name);
+      callback(user);
     };
 
-    modal.querySelector('#name-submit').addEventListener('click', handleSubmit);
-    modal.querySelector('#name-cancel').addEventListener('click', () => {
+    modal.querySelector('#user-submit').addEventListener('click', handleSubmit);
+    modal.querySelector('#user-cancel').addEventListener('click', () => {
       modal.remove();
-      callback(currentUsername || 'Anonymous');
+      if (currentUser) {
+        callback(currentUser);
+      } else {
+        callback(null);
+      }
     });
 
-    input.addEventListener('keypress', (e) => {
+    firstNameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') lastNameInput.focus();
+    });
+    lastNameInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') emailInput.focus();
+    });
+    emailInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') handleSubmit();
     });
+
+    // Update i18n for the modal
+    i18n.updateDOM();
   }
 
-  // Update leaderboard and save to Firebase
+  // Update leaderboard (local only, not Firebase)
   function updateLeaderboard(username, points) {
     const existing = leaderboard.find(e => e.name === username);
     if (existing) {
@@ -146,9 +199,6 @@ document.addEventListener('DOMContentLoaded', () => {
       leaderboard.push({ name: username, score: points, count: 1 });
     }
     leaderboard.sort((a, b) => b.score - a.score);
-    
-    // Save to Firebase
-    db.ref('leaderboard').set(leaderboard);
     renderLeaderboard();
   }
 
@@ -158,12 +208,37 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!board) return;
     
     board.innerHTML = leaderboard.slice(0, 10).map((entry, i) => `
-      <div style="padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:bold;color:#d62828">#${i + 1}</div>
-        <div>${entry.name}</div>
-        <div style="font-weight:bold;font-size:16px">${entry.score.toFixed(1)}</div>
+      <div class="leaderboard-entry">
+        <div style="font-weight:bold;color:#d62828;min-width:30px">#${i + 1}</div>
+        <div class="leaderboard-name">${entry.name}</div>
+        <div class="leaderboard-score">${entry.score.toFixed(1)}</div>
       </div>
     `).join('');
+  }
+
+  // Render admin leaderboard (with remove buttons)
+  function renderAdminLeaderboard() {
+    const board = document.getElementById('admin-leaderboard');
+    if (!board) return;
+    
+    board.innerHTML = leaderboard.map((entry, i) => `
+      <div class="leaderboard-entry">
+        <div style="font-weight:bold;color:#d62828;min-width:30px">#${i + 1}</div>
+        <div class="leaderboard-name">${entry.name}</div>
+        <div class="leaderboard-score">${entry.score.toFixed(1)}</div>
+        <button class="leaderboard-remove" data-name="${entry.name}" title="Remove">✕</button>
+      </div>
+    `).join('');
+
+    // Add event listeners for remove buttons
+    board.querySelectorAll('.leaderboard-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const nameToRemove = btn.getAttribute('data-name');
+        leaderboard = leaderboard.filter(e => e.name !== nameToRemove);
+        renderLeaderboard();
+        renderAdminLeaderboard();
+      });
+    });
   }
 
   // Add to found and save to Firebase
@@ -171,7 +246,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Check if this username has already redeemed this code
     const alreadyRedeemed = redeems.some(r => r.index === index && r.username === username);
     if (alreadyRedeemed) {
-      alert(`${username}, you already found Capybara #${index}!`);
+      alert(`${username}, ${i18n.t('alreadyFound')}${index}!`);
       return;
     }
 
@@ -195,29 +270,54 @@ document.addEventListener('DOMContentLoaded', () => {
     const code = input.value.trim().toUpperCase();
     if (!code) return;
     if (!/^CP-[0-9A-Z]{4}$/.test(code)) {
-      alert('Invalid code format');
+      alert(i18n.t('invalidCodeFormat'));
       return;
     }
     const idx = indexForCode(code);
     if (!idx) {
-      alert('Code not found');
+      alert(i18n.t('codeNotFound'));
       return;
     }
     
-    // Show name modal then process
-    showNameModal((username) => {
-      currentUsername = username;
-      localStorage.setItem(USERNAME_KEY, username);
-      addFound(idx, username);
+    // Check if user is registered
+    if (!currentUser) {
+      showUserModal((user) => {
+        if (user) {
+          addFound(idx, user.name);
+          input.value = '';
+        }
+      });
+    } else {
+      addFound(idx, currentUser.name);
       input.value = '';
-    });
+    }
   });
 
-  // Handle Enter key in input
+  // Handle Enter key in code input
   document.getElementById('code-input').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       document.getElementById('add-code').click();
     }
+  });
+
+  // Language switcher
+  document.querySelectorAll('.lang-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const lang = btn.getAttribute('data-lang');
+      i18n.setLanguage(lang);
+      
+      // Update button styles
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.remove('lang-btn-active');
+      });
+      btn.classList.add('lang-btn-active');
+    });
+  });
+
+  // Listen for i18n changes to update specific elements
+  document.addEventListener('i18n-changed', () => {
+    renderLeaderboard();
+    renderAdminLeaderboard();
   });
 
   // Custom cursor implementation (desktop only)
@@ -298,12 +398,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
 
-    // Load leaderboard
+    // Load leaderboard - for display only, we manage locally
     db.ref('leaderboard').on('value', (snapshot) => {
       if (snapshot.exists()) {
-        leaderboard = snapshot.val();
-      } else {
-        leaderboard = [];
+        // We don't load from Firebase, only display local
       }
       if (!isLoadingFromFirebase) {
         renderLeaderboard();
@@ -317,75 +415,57 @@ document.addEventListener('DOMContentLoaded', () => {
   const ADMIN_PASSWORD = 'CapaHunt26';
   let adminUnlocked = false;
 
-  const downloadBtn = document.getElementById('download-codes-hud');
-  const resetBtn = document.getElementById('reset-all-hud');
   const unlockBtn = document.getElementById('admin-unlock-btn');
-  const modal = document.getElementById('password-modal');
+  const adminModal = document.getElementById('admin-modal');
+  const adminModalClose = document.getElementById('admin-modal-close');
+  const passwordModal = document.getElementById('password-modal');
   const passwordInput = document.getElementById('admin-password');
   const modalSubmit = document.getElementById('modal-submit');
   const modalCancel = document.getElementById('modal-cancel');
 
   // Show password modal
   unlockBtn.addEventListener('click', () => {
-    modal.style.display = 'flex';
+    passwordModal.style.display = 'flex';
     passwordInput.focus();
   });
 
-  // Close modal
+  // Close password modal
   modalCancel.addEventListener('click', () => {
-    modal.style.display = 'none';
+    passwordModal.style.display = 'none';
     passwordInput.value = '';
   });
 
-  // Submit password
+  // Submit admin password
   modalSubmit.addEventListener('click', () => {
     if (passwordInput.value === ADMIN_PASSWORD) {
       adminUnlocked = true;
-      downloadBtn.classList.remove('btn-disabled');
-      resetBtn.classList.remove('btn-disabled');
-      downloadBtn.disabled = false;
-      resetBtn.disabled = false;
-      unlockBtn.textContent = '✓ Unlocked';
+      unlockBtn.textContent = '✓ ' + i18n.t('unlock');
       unlockBtn.style.background = '#4caf50';
       unlockBtn.disabled = true;
-      modal.style.display = 'none';
+      passwordModal.style.display = 'none';
       passwordInput.value = '';
+      
+      // Show admin modal
+      renderAdminLeaderboard();
+      adminModal.style.display = 'flex';
     } else {
-      alert('Wrong password');
+      alert(i18n.t('wrongPassword'));
     }
+  });
+
+  // Close admin modal
+  adminModalClose.addEventListener('click', () => {
+    adminModal.style.display = 'none';
+    adminUnlocked = false;
+    unlockBtn.textContent = i18n.t('unlock');
+    unlockBtn.style.background = '#666';
+    unlockBtn.disabled = false;
   });
 
   // Allow Enter key in password input
   passwordInput.addEventListener('keypress', (e) => {
     if (e.key === 'Enter') {
       modalSubmit.click();
-    }
-  });
-
-  // Download codes button (HUD)
-  downloadBtn.addEventListener('click', () => {
-    if (!adminUnlocked) return;
-    const barcodes = [];
-    for (let i = 1; i <= TOTAL; i++) {
-      barcodes.push({ index: i, code: codeForIndex(i) });
-    }
-    downloadBarcodesPDF(barcodes);
-  });
-
-  // Reset all (HUD)
-  resetBtn.addEventListener('click', () => {
-    if (!adminUnlocked) return;
-    if (confirm('Reset all found capybaras?')) {
-      redeems.length = 0;
-      leaderboard.length = 0;
-      // Save to Firebase
-      db.ref('redeems').set(redeems);
-      db.ref('leaderboard').set(leaderboard);
-      renderGrid();
-      updateDisplay();
-      renderLeaderboard();
-      document.getElementById('feed').innerHTML = '';
-      alert('Reset complete');
     }
   });
 
@@ -480,4 +560,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderGrid();
   updateDisplay();
   renderLeaderboard();
+
+  // Update i18n on page load
+  i18n.updateDOM();
 });

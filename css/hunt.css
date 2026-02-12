@@ -649,6 +649,178 @@ input[type="file"]{padding:8px;border-radius:8px;margin-top:12px;width:100%;bord
 input[type="file"]:focus{border-color: var(--mf-primary);}
 button[type="button"]{background:var(--mf-primary);color:#fff;padding:11px 16px;border-radius:11px;border:none;font-weight:600;cursor:pointer;transition:all 0.12s ease;font-size:13px;box-shadow: 0 4px 12px rgba(214, 40, 40, 0.12);}
 button[type="button"]:hover{transform:translateY(-2px);box-shadow: 0 8px 20px rgba(214, 40, 40, 0.2);}
+
+/* Language buttons */
+.lang-btn {
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  background: #fff;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.lang-btn:hover {
+  background: #f0f0f0;
+  border-color: #999;
+}
+
+.lang-btn-active {
+  background: #d62828;
+  color: #fff;
+  border-color: #d62828;
+}
+
+/* Admin button */
+.btn-admin {
+  font-size: 12px;
+end-sm: 1;
+}
+
+.btn-admin:hover {
+  background: #555 !important;
+}
+
+.btn-admin.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Input fields */
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-bottom: 12px;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="password"]:focus {
+  outline: none;
+  border-color: #d62828;
+  box-shadow: 0 0 0 3px rgba(214, 40, 40, 0.1);
+}
+
+/* Button styles */
+.btn-primary {
+  padding: 10px 16px;
+  border: none;
+  background: #d62828;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-primary:hover {
+  background: #a82020;
+}
+
+.btn-secondary {
+  padding: 10px 16px;
+  border: none;
+  background: #999;
+  color: #fff;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background: #777;
+}
+
+.btn-hud {
+  width: 100%;
+  padding: 8px;
+  border: none;
+  background: #d62828;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  margin-bottom: 6px;
+  transition: all 0.2s;
+}
+
+.btn-hud:hover {
+  background: #a82020;
+}
+
+.btn-hud.btn-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Leaderboard with remove buttons */
+.leaderboard-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.leaderboard-entry:last-child {
+  border-bottom: none;
+}
+
+.leaderboard-name {
+  flex: 1;
+}
+
+.leaderboard-score {
+  font-weight: bold;
+  font-size: 16px;
+  color: #d62828;
+  margin: 0 12px;
+}
+
+.leaderboard-remove {
+  background: #d62828;
+  color: #fff;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  cursor: pointer;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.leaderboard-remove:hover {
+  background: #a82020;
+  transform: scale(1.1);
+}
+
+/* Error message */
+#error-msg {
+  color: #d62828;
+  font-size: 12px;
+  margin-bottom: 8px;
+  display: none;
+}
+
 @media(max-width:768px){
   header h1{font-size:36px}
   .layout{max-width:100%}
