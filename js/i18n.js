@@ -1,6 +1,7 @@
 // Internationalization (i18n) system
 const i18nStrings = {
   en: {
+      hintsCategory: 'Capybara',
     // Header
     title: 'Capybara Hunt',
     intro1: 'Hidden inside the school, there are 50 tiny capybaras. Your goal is to find the most amount of them.',
@@ -89,6 +90,7 @@ const i18nStrings = {
     leaveHintQuestion: 'Would you like to leave a hint for this capybara?',
   },
   fr: {
+      hintsCategory: 'Capybara',
     // Header
     title: 'Chasse aux Capybaras',
     intro1: 'Caché à l\'intérieur de l\'école, il y a 50 petits capybaras. Votre objectif est d\'en trouver le plus possible.',

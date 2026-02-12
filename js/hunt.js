@@ -332,7 +332,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     sortedIndices.forEach(index => {
       html += `<div style="margin-bottom:20px;border:1px solid #ddd;padding:12px;border-radius:6px;">`;
-      html += `<div style="font-weight:bold;margin-bottom:8px">Capybara #${index}</div>`;
+      html += `<div style="font-weight:bold;margin-bottom:8px" data-i18n="hintsCategory">${i18n.t('hintsCategory')} #${index}</div>`;
       
       hintsByCapy[index].forEach((hint, hintNum) => {
         const removeBtn = hintEditMode ? `<button class="hint-remove-btn" data-hint-id="${hint.timestamp}" style="float:right;background:#d62828;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">✕</button>` : '';
@@ -663,7 +663,7 @@ document.addEventListener('DOMContentLoaded', () => {
   adminModal.addEventListener('click', (e) => {
     if (e.target === adminModal) {
       adminModal.style.display = 'none';
-      hintEditMode = false;
+      // Do not exit edit mode here; only close modal
       renderHints();
     }
   });
