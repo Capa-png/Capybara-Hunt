@@ -859,6 +859,7 @@ input[type="password"]:focus {
 }
 
 /* Admin checklist */
+/* Admin checklist */
 #admin-names-checklist {
   border: 1px solid #ddd;
   border-radius: 4px;
@@ -885,6 +886,134 @@ input[type="password"]:focus {
   cursor: pointer;
   width: 16px;
   height: 16px;
+}
+
+/* Rebel Capybara Section */
+.rebel-section {
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid #d62828;
+  margin: 20px 0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px transparent;
+  animation: borderGlow 3s infinite;
+}
+
+@keyframes borderGlow {
+  0% {
+    box-shadow: 0 0 10px rgba(214, 40, 40, 0.3), inset 0 0 10px rgba(214, 40, 40, 0.1);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(214, 40, 40, 0.6), inset 0 0 20px rgba(214, 40, 40, 0.2);
+  }
+  100% {
+    box-shadow: 0 0 10px rgba(214, 40, 40, 0.3), inset 0 0 10px rgba(214, 40, 40, 0.1);
+  }
+}
+
+.rebel-section h2 {
+  margin: 0 0 16px 0;
+  font-size: 20px;
+  color: #d62828;
+  font-weight: bold;
+}
+
+.rebel-section h3 {
+  color: #333;
+  font-size: 16px;
+  margin-top: 16px;
+}
+
+.rebel-section p {
+  margin: 0 0 12px 0;
+}
+
+.rebel-section ul {
+  margin: 0 0 12px 0;
+  padding-left: 20px;
+}
+
+.rebel-section li {
+  margin-bottom: 6px;
+}
+
+/* Rebel Code Box Style (Found Codes) */
+.rebel-code-box-found {
+  background: #d62828;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 12px;
+  text-align: center;
+  color: white;
+  font-size: 12px;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+  transition: all 200ms;
+  box-shadow: 0 2px 8px rgba(214, 40, 40, 0.3);
+}
+
+/* Hint Buttons */
+.hint-button {
+  background: white;
+  border: 2px solid #d62828;
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-weight: bold;
+  color: #d62828;
+  cursor: pointer;
+  transition: all 200ms;
+  font-size: 14px;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.hint-button:hover {
+  background: #d62828;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(214, 40, 40, 0.3);
+}
+
+/* Admin hints visibility checklist */
+#admin-hints-visibility-checklist {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 8px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+#admin-hints-visibility-checklist label {
+  display: flex;
+  align-items: center;
+  padding: 8px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+  user-select: none;
+}
+
+#admin-hints-visibility-checklist label:last-child {
+  border-bottom: none;
+}
+
+#admin-hints-visibility-checklist input[type="checkbox"] {
+  margin-right: 8px;
+  cursor: pointer;
+  width: 16px;
+  height: 16px;
+}
+
+/* Admin rebel codes display */
+#admin-rebel-codes-display {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 @media(max-width:768px){

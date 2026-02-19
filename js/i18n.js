@@ -19,7 +19,7 @@ const i18nStrings = {
     // Scoring
     scoringTitle: 'Scoring:',
     scoring1: 'Each capybara is worth 1 point at first scan; after that, its worth drops to 0.5.',
-    scoring2: 'Out of the 100, there is a golden one worth 10 points, but after being scanned, its worth drops to 1.',
+    scoring2: 'Out of the 50, there is a golden one worth 10 points, but after being scanned, its worth drops to 1.',
     scoring3: 'Once all Capys are found or it reaches the 20th, the event is over.',
     
     happyHunting: 'Happy Hunting. 💕',
@@ -109,7 +109,7 @@ const i18nStrings = {
     // Scoring
     scoringTitle: 'Notation :',
     scoring1: 'Chaque capybara vaut 1 point à la première analyse; après cela, sa valeur tombe à 0,5.',
-    scoring2: 'Sur les 100, il y en a une dorée qui vaut 10 points, mais après avoir été scannée, sa valeur est réduite à 1.',
+    scoring2: 'Sur les 50, il y en a une dorée qui vaut 10 points, mais après avoir été scannée, sa valeur est réduite à 1.',
     scoring3: 'Une fois que tous les Capys sont trouvés ou qu\'on atteint le 20e, l\'événement est terminé.',
     
     happyHunting: 'Bonne chasse. 💕',

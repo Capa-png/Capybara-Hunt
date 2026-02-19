@@ -55,15 +55,38 @@
         <p><strong data-i18n="scoringTitle">Scoring:</strong><br>
         <span data-i18n="scoring1">Each capybara is worth 1 point at first scan; after that, its worth drops to 0.5.</span></p>
         
-        <p data-i18n="scoring2">Out of the 100, there is a golden one worth 10 points, but after being scanned, its worth drops to 1.</p>
+        <p data-i18n="scoring2">Out of the 50, there is a golden one worth 10 points, but after being scanned, its worth drops to 1.</p>
         
         <p data-i18n="scoring3">Once all Capys are found or it reaches the 20th, the event is over.</p>
         
         <p style="text-align:center;font-weight:bold;margin-top:16px" data-i18n="happyHunting">Happy Hunting. 💕</p>
       </div>
+
+      <!-- Rebel Capybara Section -->
+      <div class="rebel-section">
+        <h2 style="margin-top:0">Rogue Capybaras</h2>
+        <p><strong>10 Rogue Capybara's have snuck into CJS staff's desks and have promised them points to stay hidden. It's your job to expose them.</strong></p>
+        <p><strong>How to Find Them:</strong> Using the hints below you must identify which staff members are secretly hiding a Rogue Capybara and say the codeword associated with those hints to get them to reveal it to earn points.</p>
+        
+        <h3 style="margin-top:16px">Scoring:</h3>
+        <ul>
+          <li>5 points on the first scan</li>
+          <li>2.5 points for the next 2 scans</li>
+          <li>1 point for the next 3 scans</li>
+          <li>Then it drops to zero.</li>
+        </ul>
+        
+        <h3 style="margin-top:16px">Rules:</h3>
+        <ul>
+          <li>Do not intrude in ongoing classes - only visit during spare, lunch or after class.</li>
+          <li>Do not guess random codewords to teachers - teachers will not respond, even if you accidentally say a correct one.</li>
+          <li>Follow all the previous game rules and be respectful.</li>
+          <li>If there are any errors on the website or questions, message James Hohner on Teams.</li>
+        </ul>
+      </div>
       
       <div id="count-display">
-        <div class="big-number">100</div>
+        <div class="big-number">50</div>
         <div class="label" data-i18n="remaining">remaining</div>
       </div>
     </header>
@@ -96,6 +119,26 @@
           <div style="margin-bottom:20px;border-top:1px solid #ddd;padding-top:16px;">
             <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:bold">Manage Entries (uncheck to hide)</h3>
             <div id="admin-names-checklist" style="max-height:200px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;"></div>
+          </div>
+
+          <!-- Rebel Codes Section -->
+          <div style="margin-bottom:20px;border-top:1px solid #ddd;padding-top:16px;">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:bold">Rogue Capybara Codes</h3>
+            <button id="admin-print-rebel-codes-btn" class="btn-primary" style="width:100%;padding:12px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold;margin-bottom:8px">Print Rogue Codes</button>
+            <button id="admin-generate-rebel-codes" class="btn-primary" style="width:100%;padding:12px;border:none;background:#d62828;color:#fff;border-radius:6px;cursor:pointer;font-weight:bold;margin-bottom:8px">Generate/Show Rogue Codes</button>
+            <div id="admin-rebel-codes-display" style="max-height:200px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;font-family:monospace;font-size:12px;background:#f5f5f5;line-height:1.6"></div>
+          </div>
+
+          <!-- Hints Visibility Section -->
+          <div style="margin-bottom:20px;border-top:1px solid #ddd;padding-top:16px;">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:bold">Teacher Hints Visibility (check to show)</h3>
+            <div id="admin-hints-visibility-checklist" style="max-height:150px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;"></div>
+          </div>
+
+          <!-- Reset Individual Rebel Scans Section -->
+          <div style="margin-bottom:20px;border-top:1px solid #ddd;padding-top:16px;">
+            <h3 style="margin:0 0 12px 0;font-size:14px;font-weight:bold">Reset Individual Rogue Scans</h3>
+            <div id="admin-rebel-scans-list" style="max-height:200px;overflow-y:auto;border:1px solid #eee;padding:8px;border-radius:4px;font-size:12px"></div>
           </div>
 
           <!-- Remove Hints Button -->
@@ -135,7 +178,7 @@
         </div>
       </div>
 
-      <!-- Hint Modal -->
+      <!-- Hint Modal for User Submitted Hints -->
       <div id="hint-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:2000;display:none">
         <div style="background:#fff;padding:32px;border-radius:12px;max-width:350px;box-shadow:0 10px 40px rgba(0,0,0,0.3)">
           <h2 style="margin:0 0 16px 0;font-size:20px">Leave a Hint</h2>
@@ -149,12 +192,46 @@
         </div>
       </div>
 
+      <!-- Hint Modal for Teachers -->
+      <div id="teacher-hint-modal" style="position:fixed;inset:0;background:rgba(0,0,0,0.6);align-items:center;justify-content:center;z-index:2000;display:none">
+        <div style="background:#fff;padding:32px;border-radius:12px;max-width:400px;box-shadow:0 10px 40px rgba(0,0,0,0.3);max-height:80vh;overflow-y:auto">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+            <h2 id="teacher-hint-title" style="margin:0;font-size:20px"></h2>
+            <button id="teacher-hint-close" style="background:none;border:none;font-size:24px;cursor:pointer;padding:0;width:30px;height:30px;display:flex;align-items:center;justify-content:center">✕</button>
+          </div>
+          <div id="teacher-hint-content" style="font-size:14px;line-height:1.6;color:#555"></div>
+          <div id="teacher-hint-codeword" style="margin-top:16px;padding:12px;background:#f5f5f5;border-radius:6px;border-left:4px solid #d62828;font-weight:bold;color:#d62828"></div>
+        </div>
+      </div>
+
       <!-- Scan Section (Home) -->
       <section class="section">
         <h2 data-i18n="enterCode">Enter Code</h2>
         <div style="display:flex;gap:8px;margin-bottom:24px">
           <input id="code-input" type="text" data-i18n-placeholder="codePlaceholder" placeholder="e.g., CP-1A2B" />
           <button id="add-code" class="btn-primary" data-i18n="add">Add</button>
+        </div>
+      </section>
+
+      <!-- Rebel Capybara Code Section -->
+      <section class="section">
+        <h2>Rogue Capybara Codes</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:12px"><strong>How it works:</strong>Enter the Rogue Capybara code you were given by a teacher down below.</p>
+        <div style="display:flex;gap:8px;margin-bottom:24px">
+          <input id="rebel-code-input" type="text" placeholder="e.g., Rogue-4K2P" style="width:100%;padding:12px;border:1px solid #ddd;border-radius:6px;font-size:14px;margin-bottom:0" />
+          <button id="add-rebel-code" class="btn-primary" style="padding:12px 20px">Submit</button>
+        </div>
+        <div id="rebel-codes-found" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px">
+          <!-- Rebel codes will be rendered here -->
+        </div>
+      </section>
+
+      <!-- Rebel Capybara Hints Section -->
+      <section class="section">
+        <h2>Teacher Hints</h2>
+        <p style="font-size:13px;color:#666;margin-bottom:16px">Click on a teacher to see their hints and learn their codeword:</p>
+        <div id="hints-buttons-container" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">
+          <!-- Hint buttons will be rendered here -->
         </div>
       </section>
 

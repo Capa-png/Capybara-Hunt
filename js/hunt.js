@@ -24,10 +24,72 @@ document.addEventListener('DOMContentLoaded', () => {
   let leaderboard = [];
   let hints = [];
   let visibleNames = new Set(); // Track which names are visible
+  let rebelCodes = []; // Rebel capybara codes and their scans
+  let visibleHintTeachers = new Set(); // Track which hint teachers are visible
   let currentUser = getStoredUser() || null;
   let isLoadingFromFirebase = false;
   let hintEditMode = false;
   let adminSessionToken = null; // Unhackable token for admin session
+
+  // Rebel Capybara hints data
+  const REBEL_TEACHERS = [
+    {
+      id: 1,
+      name: 'Teacher #1',
+      codeword: 'Sauna',
+      code: 'ROGUE-4K2P',
+      hints: [
+        '"To be, or not to be, that is the question."<3',
+        'I have a super cool DVD collection in my classroom.',
+        'Despite sharing a very similar last name with a Winnipeg Jets player, I do not, in fact, play hockey.'
+      ]
+    },
+    {
+      id: 2,
+      name: 'Teacher #2',
+      codeword: 'Plantain',
+      code: 'ROGUE-7B8M',
+      hints: [
+        'Bonjour, hello, hola, bom dia!',
+        'Sur la montagne dans un pays lointain... Est le début d\'une chanson que j\'aime bien!',
+        'There is a grave in my classroom.'
+      ]
+    },
+    {
+      id: 3,
+      name: 'Teacher #3',
+      codeword: 'Flugalhorn',
+      code: 'ROGUE-9X5L',
+      hints: [
+        'Has the worst after school activity attendance.',
+        'Loves a good dystopia book.',
+        'Bad plant parent.'
+      ]
+    },
+    {
+      id: 4,
+      name: 'Teacher #4',
+      codeword: 'Juju',
+      code: 'ROGUE-2V3Q',
+      hints: [
+        'Went to CJS in grade 9.',
+        'Is colourblind.',
+        'Where everyone gets cables from.'
+      ]
+    },
+    {
+      id: 5,
+      name: 'Teacher #5',
+      codeword: 'Panda orange',
+      code: 'ROGUE-6N1T',
+      hints: [
+        'Je travaille ici pour plus que 20 ans.',
+        'J\'ai 3 enfants.',
+        'J\'ai vécu dans un autre pays.',
+        'Je n\'enseigne pas seulement le français.'
+      ]
+    }
+  ];
 
   // Get current user from localStorage
   function getStoredUser() {
@@ -93,6 +155,178 @@ document.addEventListener('DOMContentLoaded', () => {
     // Split text into words, check for exact matches
     const words = lower.split(/[^a-zA-Z0-9]+/).filter(Boolean);
     return PROFANITIES.some(word => words.includes(word));
+  }
+
+  // Rebel Capybara Functions
+  function indexForRebelCode(code) {
+    const teacher = REBEL_TEACHERS.find(t => t.code === code.toUpperCase());
+    return teacher ? teacher.id : null;
+  }
+
+  function getRebelCodePoints(codeword, username) {
+    const codeObj = rebelCodes.find(rc => rc.codeword === codeword);
+    
+    // Check if this user already scanned this code
+    if (codeObj && codeObj.scans) {
+      const userHasScanned = codeObj.scans.some(s => s.username === username);
+      if (userHasScanned) {
+        return 0; // User already scanned this
+      }
+    }
+    
+    // Get total scan count (everyone combined)
+    const totalScans = codeObj && codeObj.scans ? codeObj.scans.length : 0;
+    
+    if (totalScans === 0) return 5;      // 1st scan (anyone): 5 points
+    if (totalScans === 1 || totalScans === 2) return 2.5; // 2nd & 3rd: 2.5 points
+    if (totalScans >= 3 && totalScans <= 5) return 1;     // 4th, 5th, 6th: 1 point
+    return 0; // More than 6 scans: 0 points
+  }
+
+  function addRebelCodeScan(codeword, username) {
+    let code = rebelCodes.find(rc => rc.codeword === codeword);
+    if (!code) {
+      code = { codeword, scans: [] };
+      rebelCodes.push(code);
+    }
+    if (!code.scans) code.scans = [];
+    code.scans.push({ username, timestamp: Date.now() });
+    db.ref('rebelCodes').set(rebelCodes);
+  }
+
+  function renderRebelCodesFound() {
+    const container = document.getElementById('rebel-codes-found');
+    if (!container) return;
+
+    container.innerHTML = '';
+    REBEL_TEACHERS.forEach((teacher, index) => {
+      const code = rebelCodes.find(rc => rc.codeword === teacher.codeword);
+      const scanCount = code && code.scans ? code.scans.length : 0;
+      
+      const box = document.createElement('div');
+      box.className = 'rebel-code-box-found';
+      box.innerHTML = `
+        <div style="font-size:10px;opacity:0.9;margin-bottom:4px">Rogue Capybara #${index + 1}</div>
+        <div style="font-size:10px;opacity:0.8;margin-top:4px">${scanCount} ${scanCount === 1 ? 'scan' : 'scans'}</div>
+      `;
+      container.appendChild(box);
+    });
+  }
+
+  function renderHintButtons() {
+    const container = document.getElementById('hints-buttons-container');
+    if (!container) return;
+
+    container.innerHTML = '';
+    REBEL_TEACHERS.forEach(teacher => {
+      // Only show if visible or if visibleHintTeachers is empty (show all by default)
+      if (visibleHintTeachers.size === 0 || visibleHintTeachers.has(teacher.id)) {
+        const button = document.createElement('button');
+        button.className = 'hint-button';
+        button.textContent = teacher.name;
+        button.addEventListener('click', () => showTeacherHintModal(teacher));
+        container.appendChild(button);
+      }
+    });
+  }
+
+  function showTeacherHintModal(teacher) {
+    const modal = document.getElementById('teacher-hint-modal');
+    if (!modal) return;
+
+    const title = modal.querySelector('#teacher-hint-title');
+    const content = modal.querySelector('#teacher-hint-content');
+    const codeword = modal.querySelector('#teacher-hint-codeword');
+    const closeBtn = modal.querySelector('#teacher-hint-close');
+
+    title.textContent = teacher.name;
+    content.innerHTML = '<ul style="margin:0;padding-left:20px">' + 
+      teacher.hints.map(hint => `<li>${hint}</li>`).join('') + 
+      '</ul>';
+    codeword.textContent = `Codeword: ${teacher.codeword}`;
+
+    modal.style.display = 'flex';
+
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+
+    modal.addEventListener('click', (e) => {
+      if (e.target === modal) {
+        modal.style.display = 'none';
+      }
+    });
+  }
+
+  function renderAdminHintsVisibility() {
+    const checklist = document.getElementById('admin-hints-visibility-checklist');
+    if (!checklist) return;
+
+    checklist.innerHTML = REBEL_TEACHERS.map(teacher => `
+      <label>
+        <input type="checkbox" class="hints-visibility-checkbox" data-teacher-id="${teacher.id}" ${visibleHintTeachers.has(teacher.id) ? 'checked' : ''} />
+        ${teacher.name} - ${teacher.codeword}
+      </label>
+    `).join('');
+
+    checklist.querySelectorAll('.hints-visibility-checkbox').forEach(checkbox => {
+      checkbox.addEventListener('change', (e) => {
+        const teacherId = parseInt(checkbox.getAttribute('data-teacher-id'));
+        if (checkbox.checked) {
+          visibleHintTeachers.add(teacherId);
+        } else {
+          visibleHintTeachers.delete(teacherId);
+        }
+        // Save to Firebase for cross-device sync
+        const visibleArray = Array.from(visibleHintTeachers);
+        db.ref('visibleHintTeachers').set(visibleArray);
+        renderHintButtons();
+      });
+    });
+  }
+
+  function renderAdminRebelScans() {
+    const container = document.getElementById('admin-rebel-scans-list');
+    if (!container) return;
+
+    let html = '';
+    REBEL_TEACHERS.forEach((teacher, index) => {
+      const code = rebelCodes.find(rc => rc.codeword === teacher.codeword);
+      if (code && code.scans && code.scans.length > 0) {
+        code.scans.forEach((scan, scanIndex) => {
+          html += `
+            <div style="padding:8px;border-bottom:1px solid #eee;display:flex;justify-content:space-between;align-items:center;">
+              <span>${teacher.codeword} - ${scan.username}</span>
+              <button class="admin-rebel-scan-delete" data-codeword="${teacher.codeword}" data-scan-index="${scanIndex}" style="background:#d62828;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:11px">Remove</button>
+            </div>
+          `;
+        });
+      }
+    });
+
+    if (html === '') {
+      html = '<div style="padding:12px;color:#999;text-align:center">No rebel scans yet</div>';
+    }
+
+    container.innerHTML = html;
+
+    // Add event listeners for delete buttons
+    container.querySelectorAll('.admin-rebel-scan-delete').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (!isAdminSessionValid()) return;
+        const codeword = btn.getAttribute('data-codeword');
+        const scanIndex = parseInt(btn.getAttribute('data-scan-index'));
+        
+        const code = rebelCodes.find(rc => rc.codeword === codeword);
+        if (code && code.scans) {
+          code.scans.splice(scanIndex, 1);
+          db.ref('rebelCodes').set(rebelCodes);
+          renderAdminRebelScans();
+          renderRebelCodesFound();
+          renderLeaderboard();
+        }
+      });
+    });
   }
 
   // Helper: get set of found capybara indices (by anyone)
@@ -377,6 +611,9 @@ document.addEventListener('DOMContentLoaded', () => {
       } else {
         visibleNames.add(username);
       }
+      // Save updated visibleNames to Firebase
+      const visibleArray = Array.from(visibleNames);
+      db.ref('visibleNames').set(visibleArray);
     }
     leaderboard.sort((a, b) => b.score - a.score);
     // Save to Firebase so it syncs across devices
@@ -404,9 +641,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const checklist = document.getElementById('admin-names-checklist');
     if (!checklist) return;
 
+    // If visibleNames is empty (initial state), populate with all leaderboard names
+    if (visibleNames.size === 0 && leaderboard.length > 0) {
+      leaderboard.forEach(entry => visibleNames.add(entry.name));
+    }
+
     checklist.innerHTML = leaderboard.map(entry => `
       <div style="display:flex;align-items:center;padding:6px;border-bottom:1px solid #eee;">
-        <input type="checkbox" class="name-visibility-checkbox" data-name="${entry.name}" ${visibleNames.has(entry.name) || visibleNames.size === 0 ? 'checked' : ''} style="margin-right:8px;cursor:pointer;">
+        <input type="checkbox" class="name-visibility-checkbox" data-name="${entry.name}" ${visibleNames.has(entry.name) ? 'checked' : ''} style="margin-right:8px;cursor:pointer;">
         <span>${entry.name}</span>
       </div>
     `).join('');
@@ -420,6 +662,9 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
           visibleNames.delete(name);
         }
+        // Save to Firebase for cross-device sync
+        const visibleArray = Array.from(visibleNames);
+        db.ref('visibleNames').set(visibleArray);
         renderLeaderboard();
       });
     });
@@ -484,6 +729,68 @@ document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('add-code').click();
     }
   });
+
+  // Rebel Capybara code entry
+  const rebelCodeInput = document.getElementById('rebel-code-input');
+  const addRebelCodeBtn = document.getElementById('add-rebel-code');
+
+  if (rebelCodeInput && addRebelCodeBtn) {
+    addRebelCodeBtn.addEventListener('click', () => {
+      const code = rebelCodeInput.value.trim().toUpperCase();
+      if (!code) {
+        alert('Please enter a code');
+        return;
+      }
+
+      if (!/^Rogue-[0-9A-Z]{4}$/i.test(code)) {
+        alert('Invalid code format. Use format like: Rogue-4K2P');
+        return;
+      }
+
+      const teacherId = indexForRebelCode(code);
+      if (!teacherId) {
+        alert('Invalid code. Please check and try again.');
+        return;
+      }
+
+      const teacher = REBEL_TEACHERS.find(t => t.id === teacherId);
+      const codeword = teacher.codeword;
+
+      if (!currentUser) {
+        showUserModal((user) => {
+          if (user) {
+            const points = getRebelCodePoints(codeword, user.name);
+            if (points > 0) {
+              addRebelCodeScan(codeword, user.name);
+              updateLeaderboard(user.name, points);
+              rebelCodeInput.value = '';
+              renderRebelCodesFound();
+              alert(`Correct! You earned ${points} points!`);
+            } else {
+              alert('You have already scanned this code or the code has been scanned 6+ times already. No more points available.');
+            }
+          }
+        });
+      } else {
+        const points = getRebelCodePoints(codeword, currentUser.name);
+        if (points > 0) {
+          addRebelCodeScan(codeword, currentUser.name);
+          updateLeaderboard(currentUser.name, points);
+          rebelCodeInput.value = '';
+          renderRebelCodesFound();
+          alert(`Correct! You earned ${points} points!`);
+        } else {
+          alert('You have already scanned this code or the code has been scanned 6+ times already. No more points available.');
+        }
+      }
+    });
+
+    rebelCodeInput.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        addRebelCodeBtn.click();
+      }
+    });
+  }
 
   // Language switcher
   document.querySelectorAll('.lang-btn').forEach(btn => {
@@ -600,6 +907,42 @@ document.addEventListener('DOMContentLoaded', () => {
         renderHints();
       }
     });
+
+    db.ref('rebelCodes').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        rebelCodes = snapshot.val();
+      } else {
+        rebelCodes = [];
+      }
+      if (!isLoadingFromFirebase) {
+        renderRebelCodesFound();
+      }
+    });
+
+    db.ref('visibleHintTeachers').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        const visibleArray = snapshot.val();
+        visibleHintTeachers = new Set(visibleArray);
+      } else {
+        visibleHintTeachers = new Set(REBEL_TEACHERS.map(t => t.id));
+      }
+      if (!isLoadingFromFirebase) {
+        renderHintButtons();
+      }
+    });
+
+    db.ref('visibleNames').on('value', (snapshot) => {
+      if (snapshot.exists()) {
+        const visibleArray = snapshot.val();
+        visibleNames = new Set(visibleArray);
+      } else {
+        visibleNames = new Set();
+      }
+      if (!isLoadingFromFirebase) {
+        renderLeaderboard();
+        renderAdminChecklist();
+      }
+    });
   }
 
   loadFromFirebase();
@@ -624,6 +967,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (isAdminSessionValid()) {
       // Already unlocked, show admin modal
       renderAdminChecklist();
+      renderAdminHintsVisibility();
+      renderAdminRebelScans();
       adminModal.style.display = 'flex';
     } else {
       // Show password modal
@@ -654,6 +999,8 @@ document.addEventListener('DOMContentLoaded', () => {
       passwordInput.value = '';
       
       renderAdminChecklist();
+      renderAdminHintsVisibility();
+      renderAdminRebelScans();
       adminModal.style.display = 'flex';
     } else {
       alert(i18n.t('wrongPassword'));
@@ -752,15 +1099,129 @@ document.addEventListener('DOMContentLoaded', () => {
       leaderboard = [];
       hints = [];
       visibleNames.clear();
+      rebelCodes = [];
       db.ref('redeems').set(redeems);
       db.ref('leaderboard').set(leaderboard);
       db.ref('hints').set(hints);
+      db.ref('visibleNames').set([]);
+      db.ref('rebelCodes').set(rebelCodes);
       renderGrid();
       updateDisplay();
       renderLeaderboard();
       renderHints();
       renderAdminChecklist();
+      renderRebelCodesFound();
       alert(i18n.t('resetComplete'));
+    }
+  });
+
+  // Admin Generate Rebel Codes Button
+  const generateRebelCodesBtn = document.getElementById('admin-generate-rebel-codes');
+  const rebelCodesDisplay = document.getElementById('admin-rebel-codes-display');
+
+  if (generateRebelCodesBtn) {
+    generateRebelCodesBtn.addEventListener('click', () => {
+      if (!isAdminSessionValid()) return;
+      
+      let displayHTML = '';
+      REBEL_TEACHERS.forEach((teacher) => {
+        displayHTML += `<div style="margin-bottom:8px;padding:8px;background:#d62828;color:white;border-radius:4px;font-family:monospace;font-size:12px;text-align:center;">
+          ${teacher.code}
+          <div style="font-size:10px;opacity:0.9;margin-top:4px">${teacher.name} - ${teacher.codeword}</div>
+        </div>`;
+      });
+      
+      if (rebelCodesDisplay) {
+        rebelCodesDisplay.innerHTML = displayHTML;
+      }
+    });
+  }
+
+  // Admin Print Rebel Codes Button
+  const printRebelCodesBtn = document.getElementById('admin-print-rebel-codes-btn');
+
+  if (printRebelCodesBtn) {
+    printRebelCodesBtn.addEventListener('click', () => {
+      if (!isAdminSessionValid()) return;
+      downloadRebelCodesPDF();
+    });
+  }
+
+  function downloadRebelCodesPDF() {
+    const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Rogue Capybara Codes</title>
+  <style>
+    body { margin: 0; padding: 8mm; font-family: Arial, sans-serif; background: white; }
+    .code-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .code-item { 
+      display: flex; 
+      flex-direction: column; 
+      align-items: center; 
+      justify-content: center; 
+      padding: 12px; 
+      border: 2px solid #d62828; 
+      border-radius: 6px;
+      background: white;
+    }
+    .code-label { 
+      font-size: 9px; 
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 6px;
+      text-align: center;
+    }
+    .code-text { 
+      font-size: 12px; 
+      font-weight: bold; 
+      font-family: monospace;
+      color: #d62828;
+      text-align: center;
+    }
+    .teacher-info { 
+      font-size: 8px; 
+      font-weight: bold; 
+      margin-top: 6px; 
+      color: #666;
+      text-align: center;
+    }
+    @media print { 
+      body { margin: 4mm; padding: 2mm; } 
+      .code-grid { gap: 6px; } 
+      .code-item { padding: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;font-size:20px;margin-bottom:20px">Rogue Capybara Codes</h1>
+  <div class="code-grid" id="codes"><\/div>
+  <script>
+    const teachers = ${JSON.stringify(REBEL_TEACHERS)};
+    const container = document.getElementById('codes');
+    teachers.forEach(teacher => {
+      const div = document.createElement('div');
+      div.className = 'code-item';
+      div.innerHTML = '<div class="code-label">Rogue Capybara #' + teacher.id + '<\/div>' +
+                      '<div class="code-text">' + teacher.code + '<\/div>' +
+                      '<div class="teacher-info">' + teacher.codeword + '<\/div>';
+      container.appendChild(div);
+    });
+    setTimeout(() => { window.print(); }, 500);
+  <\/script>
+</body>
+</html>`;
+    const blob = new Blob([html], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    window.open(url, '_blank');
+  }
+
+  // Render hints visibility checklist when admin modal opens
+  adminModal.addEventListener('click', (e) => {
+    if (e.target === adminModal) {
+      adminModal.style.display = 'none';
+      renderHints();
     }
   });
 
@@ -862,6 +1323,9 @@ document.addEventListener('DOMContentLoaded', () => {
   updateDisplay();
   renderLeaderboard();
   renderHints();
+  renderRebelCodesFound();
+  renderHintButtons();
+  renderAdminHintsVisibility();
 
   // Update i18n on page load
   i18n.updateDOM();
