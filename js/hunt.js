@@ -88,6 +88,64 @@ document.addEventListener('DOMContentLoaded', () => {
         'J\'ai vécu dans un autre pays.',
         'Je n\'enseigne pas seulement le français.'
       ]
+    },
+    {
+      id: 6,
+      name: 'Teacher #6',
+      codeword: 'Nikki',
+      code: 'ROGUE-3H9W',
+      hints: [
+        'J\'adore les animaux',
+        'J\'adore étudier les langues',
+        'J\'adore la psychologie',
+        'Je n\'enseigne pas, mais j\'aide les élèves.'
+      ]
+    },
+    {
+      id: 7,
+      name: 'Teacher #7',
+      codeword: 'Axiome',
+      code: 'ROGUE-8F1Z',
+      hints: [
+        'Pythagore, Archimède et Héron ont bien aimé cette matière.',
+        'Depuis longtemps les corridors ont entendu ma voix.',
+        'Calvitie précoce, sagesse féroce.'
+      ]
+    },
+    {
+      id: 8,
+      name: 'Teacher #8',
+      codeword: 'Piñata',
+      code: 'ROGUE-5P7D',
+      hints: [
+        'J\'ai travaillé ici pour plus de 20 ans.',
+        'Proud mama of two kids.',
+        'Come say hi to Frida! She\'s chillin\' out at the back of my classroom.'
+      ]
+    },
+    {
+      id: 9,
+      name: 'Teacher #9',
+      codeword: 'Soleil et Nuage',
+      code: 'ROGUE-1M4K',
+      hints: [
+        'Si quelque chose fonctionne bien, on dit que "Ça ________________". Complète la phrase… c\'est le début de mon dernier nom.',
+        'Mes élèves dans mes différents cours analysent des cartes, des sources primaires et des cas juridiques.',
+        'Dans ma classe, on peut voyager autour du monde… juste en regardant aux murs!'
+      ]
+    },
+    {
+      id: 10,
+      name: 'Teacher #10',
+      codeword: 'Halloween',
+      code: 'ROGUE-7L2C',
+      hints: [
+        'I design tattoos',
+        'I have been to Europe 5 times',
+        'I sometimes wear a CJS musical sweater',
+        'I play the clarinet',
+        'I teach one subject'
+      ]
     }
   ];
 
@@ -1113,6 +1171,51 @@ document.addEventListener('DOMContentLoaded', () => {
       renderRebelCodesFound();
       alert(i18n.t('resetComplete'));
     }
+  });
+
+  // Admin Adjust Points
+  const adjustPlayerSelect = document.getElementById('admin-adjust-player');
+  const adjustMinus5 = document.getElementById('admin-adjust-minus5');
+  const adjustMinus1 = document.getElementById('admin-adjust-minus1');
+  const adjustPlus1 = document.getElementById('admin-adjust-plus1');
+  const adjustPlus5 = document.getElementById('admin-adjust-plus5');
+
+  function updateAdjustPlayerDropdown() {
+    if (!adjustPlayerSelect) return;
+    adjustPlayerSelect.innerHTML = '<option value="">-- Select Player --</option>';
+    leaderboard.forEach(entry => {
+      adjustPlayerSelect.innerHTML += `<option value="${entry.name}">${entry.name} (${entry.score} pts)</option>`;
+    });
+  }
+
+  function adjustPlayerPoints(amount) {
+    if (!isAdminSessionValid()) return;
+    const playerName = adjustPlayerSelect.value;
+    if (!playerName) {
+      alert('Please select a player');
+      return;
+    }
+    const player = leaderboard.find(e => e.name === playerName);
+    if (player) {
+      player.score += amount;
+      leaderboard.sort((a, b) => b.score - a.score);
+      db.ref('leaderboard').set(leaderboard);
+      renderLeaderboard();
+      updateAdjustPlayerDropdown();
+    }
+  }
+
+  if (adjustMinus5) adjustMinus5.addEventListener('click', () => adjustPlayerPoints(-5));
+  if (adjustMinus1) adjustMinus1.addEventListener('click', () => adjustPlayerPoints(-1));
+  if (adjustPlus1) adjustPlus1.addEventListener('click', () => adjustPlayerPoints(1));
+  if (adjustPlus5) adjustPlus5.addEventListener('click', () => adjustPlayerPoints(5));
+
+  // Update adjust player dropdown when admin modal is opened
+  const originalUnlockClick = unlockBtn.onclick;
+  unlockBtn.addEventListener('click', () => {
+    setTimeout(() => {
+      updateAdjustPlayerDropdown();
+    }, 100);
   });
 
   // Admin Generate Rebel Codes Button
